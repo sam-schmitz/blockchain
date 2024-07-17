@@ -1,16 +1,19 @@
 // main.js
 // By: Sam Schmitz
 
-const SHA256 = require('crypto-js/sha256')
+const SHA256 = require('crypto-js/sha256');
+const SHA3 = require('crypto-js/sha3');
+//var hash = SHA3("Message", {outputLength: 224});
+const { generateKeyPair, createCipheriv } = require('crypto');
 
 class Block {
-	constructor(index, timestamp, data) {
+	constructor(index, timestamp, data, previousHash) {
 		this.index = index;
 		this.timestamp = timestamp;
 		this.data = data;
-		this.previousHash = "0";
-		this.hash = this.calculateHash();
+		this.previousHash = previousHash;
 		this.nonce = 0;
+		this.hash = this.calculateHash();
 	}
 
 	calculateHash() {
@@ -45,7 +48,7 @@ class Blockchain{
 	}
 
 	addBlock(newBlock) {
-		newBlock.previousHash = this.latestBlock().hash;
+		// newBlock.previousHash = this.latestBlock().hash;
 		// newBlock.hash = newBlock.calculateHash();
 		newBlock.proofOfWork(this.difficulty);
 		this.chain.push(newBlock);
@@ -69,21 +72,70 @@ class Blockchain{
 	}
 }
 
+class Wallet {
+	constructor() {
+		//generate asynchronous key pair
+		generateKeyPair('rsa', {
+			modulousLength: 530, // Options
+			publicKeyEncoding: {
+				type: 'pkcs1',
+				format: 'der'
+			},
+			privateKeyEncoding: {
+				type: 'pkcs1',
+				format: 'der',
+				//cipher: 'aes-192-cbc',
+				//passphrase: 'Welcome'
+			}
+		}, (err, publicKey, privateKey) => { // Callback function
+			if (!err) {
+				// This will print the asymmetric key pair
+				this.publicKey = publicKey
+				this.privateKey = privateKey
+			} else {
+				// Prints error if any
+				console.log("Errr is: ", err);
+			}
+		});
+	}
+
+	createTransaction(amount, recipient) {
+		//create a string with the transaction data
+		let transaction = `{public key} pays {recipient's key} {amount}`;
+
+		//generate a signature
+		let signature = this.generateSignature(transaction);
+
+		//return a dictionary with the message and signature
+		return { data: transaction, signature: signature };
+	}
+
+	generateSignature(data) {
+		//run the transaction data through a hash
+		let hash = SHA256(data);
+
+		//encrpyt the hash w/ private key -> signature
+		return createCipheriv('rsa', this.privateKey, hash);
+    }
+}
+
 let jsChain = new Blockchain();
 
+console.log("creating wallets...");
+let wallet1 = new Wallet();
+let wallet2 = new Wallet();
+
+console.log("creating transactions...");
+let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
+let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
+
 console.log("mining in process");
-jsChain.addBlock(new Block(1, "12/25/2024",
-	{
-		sender: "Alice",
-		recipient: "Bob",
-		quantity: 5
-	}));
-jsChain.addBlock(new Block(2, "12/26/2024",
-	{
-		sender: "Bob",
-		recipient: "Alice",
-		quantity: 10
-	}));
+jsChain.addBlock(
+	new Block(1, "12/25/2024", transaction1, jsChain.latestBlock())
+);
+jsChain.addBlock(
+	new Block(2, "12/26/2024", transaction2, jsChain.latestBlock())
+);
 
 console.log(JSON.stringify(jsChain, null, 4));
 console.log("Is blockchain valid? " + jsChain.checkValid());
