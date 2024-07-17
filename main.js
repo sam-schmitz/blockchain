@@ -73,9 +73,9 @@ class Blockchain{
 }
 
 class Wallet {
-	constructor() {
+	constructor(pk) {
 		//generate asynchronous key pair
-		generateKeyPair('rsa', {
+		/*generateKeyPair('rsa', {
 			modulousLength: 530, // Options
 			publicKeyEncoding: {
 				type: 'pkcs1',
@@ -97,17 +97,20 @@ class Wallet {
 				console.log("Errr is: ", err);
 			}
 		});
+		*/
+		this.publicKey = pk
 	}
 
 	createTransaction(amount, recipient) {
 		//create a string with the transaction data
-		let transaction = `{public key} pays {recipient's key} {amount}`;
+		let transaction = `${this.publicKey} pays ${recipient} ${amount}`;
 
 		//generate a signature
-		let signature = this.generateSignature(transaction);
+		//let signature = this.generateSignature(transaction);
 
 		//return a dictionary with the message and signature
-		return { data: transaction, signature: signature };
+		//return { data: transaction, signature: signature };
+		return transaction
 	}
 
 	generateSignature(data) {
@@ -122,8 +125,8 @@ class Wallet {
 let jsChain = new Blockchain();
 
 console.log("creating wallets...");
-let wallet1 = new Wallet();
-let wallet2 = new Wallet();
+let wallet1 = new Wallet("1");
+let wallet2 = new Wallet("2");
 
 console.log("creating transactions...");
 let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
@@ -131,10 +134,10 @@ let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
 
 console.log("mining in process");
 jsChain.addBlock(
-	new Block(1, "12/25/2024", transaction1, jsChain.latestBlock())
+	new Block(1, "12/25/2024", transaction1, jsChain.latestBlock().hash)
 );
 jsChain.addBlock(
-	new Block(2, "12/26/2024", transaction2, jsChain.latestBlock())
+	new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash)
 );
 
 console.log(JSON.stringify(jsChain, null, 4));
