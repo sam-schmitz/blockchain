@@ -11,17 +11,28 @@ const generateKeyPairPromise = util.promisify(generateKeyPair);
 const crypto = require('crypto');
 
 class Block {
-	constructor(index, timestamp, data, previousHash) {
+	constructor(index, timestamp, previousHash) {
 		this.index = index;
 		this.timestamp = timestamp;
-		if (data !== "Genesis block") {
-			this.verifyTransaction(data);
-        }
-		this.data = data;
+		this.data = [];	//empty array
 		this.previousHash = previousHash;
 		this.nonce = 0;
 		this.hash = this.calculateHash();
 	}
+
+	calculateHash() {
+		return SHA256(this.index +
+			this.previousHash +
+			this.timestamp +
+			JSON.stringify(this.data) +	//alter now that data is an array of obj
+			this.nonce
+		).toString();
+	}
+
+	addTransaction(data) {
+		this.verifyTransaction(data);	//if data passes it will be added
+		this.hash = this.calculateHash();
+    }
 
 	verifyTransaction(data) {
 
@@ -31,10 +42,8 @@ class Block {
 		const match = publicKey.match(regex);
 		publicKey = match ? match[0] : null;
 		//console.log("public key: ", publicKey);
-		//get data between -----BEGIN PUBLIC KEY-----\n and -----END PUBLIC KEY-----\n
 
 		//decrypt the signature
-		//console.log("signature: ", data.signature);
 		const decryptedHash = crypto.publicDecrypt(publicKey, Buffer.from(data.signature, 'base64'));
 		//console.log("decrypted hash: ", decryptedHash);
 
@@ -43,18 +52,11 @@ class Block {
 		//console.log("remade hash", originalHash);
 
 		//compare
-		if (!originalHash.equals(decryptedHash)) {
+		if (originalHash.equals(decryptedHash)) {
+			this.data	//append the data
+		} else {
 			throw new Error('False signature');
         }
-	}
-
-	calculateHash() {
-		return SHA256(this.index +
-			this.previousHash +
-			this.timestamp +
-			JSON.stringify(this.data) +
-			this.nonce
-		).toString();
 	}
 
 	proofOfWork(difficulty) {
@@ -72,7 +74,10 @@ class Blockchain{
 	}
 
 	createGenesis() {
-		return new Block(0, "01/01/2024", "Genesis block", "0")
+		let g = new Block(0, "01/01/2024", "0");
+		g.data = "Genesis Block";
+		g.proofOfWork(4);
+		return g
 	}
 
 	latestBlock() {
@@ -188,13 +193,14 @@ let jsChain = new Blockchain();
 	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
 	//console.log(decrypetedHash);
 
+	console.log("creating a block...");
+	let block1 = new Block(1, "12/25/24", jsChain.latestBlock().hash);
+	block1.addTransaction(transaction1);
+	block1.addTransaction(transaction2);
+
 	console.log("mining in progress...");
-	jsChain.addBlock(
-		new Block(1, "12/25/2024", transaction1, jsChain.latestBlock().hash)
-	);
-	jsChain.addBlock(
-		new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash)
-	);
+	jsChain.addBlock(block1);
+	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
 
 
 	console.log(JSON.stringify(jsChain, null, 4));
