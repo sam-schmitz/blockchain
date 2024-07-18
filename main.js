@@ -14,10 +14,38 @@ class Block {
 	constructor(index, timestamp, data, previousHash) {
 		this.index = index;
 		this.timestamp = timestamp;
+		if (data !== "Genesis block") {
+			this.verifyTransaction(data);
+        }
 		this.data = data;
 		this.previousHash = previousHash;
 		this.nonce = 0;
 		this.hash = this.calculateHash();
+	}
+
+	verifyTransaction(data) {
+
+		//grab the public key from the data
+		let publicKey = data.data
+		const regex = /-----BEGIN PUBLIC KEY-----[\r\n]+([\s\S]*?)[\r\n]+-----END PUBLIC KEY-----/;
+		const match = publicKey.match(regex);
+		publicKey = match ? match[0] : null;
+		//console.log("public key: ", publicKey);
+		//get data between -----BEGIN PUBLIC KEY-----\n and -----END PUBLIC KEY-----\n
+
+		//decrypt the signature
+		//console.log("signature: ", data.signature);
+		const decryptedHash = crypto.publicDecrypt(publicKey, Buffer.from(data.signature, 'base64'));
+		//console.log("decrypted hash: ", decryptedHash);
+
+		//hash the data
+		const originalHash = crypto.createHash('sha256').update(data.data).digest();
+		//console.log("remade hash", originalHash);
+
+		//compare
+		if (!originalHash.equals(decryptedHash)) {
+			throw new Error('False signature');
+        }
 	}
 
 	calculateHash() {
@@ -102,6 +130,7 @@ class Wallet {
 
 			this.publicKey = publicKey;
 			this.privateKey = privateKey;
+			//console.log(publicKey.toString('base64'));
 		} catch (error) {
 			console.error('Error generating keys:', error);
 		}
@@ -127,7 +156,7 @@ class Wallet {
 
 		//run the transaction data through a hash
 		const hash = crypto.createHash('sha256').update(data).digest();
-
+		//console.log("pre encrypted hash", hash);
 
 		//encrypt the hash using the private key
 		const encryptedHash = crypto.privateEncrypt(this.privateKey, Buffer.from(hash));
@@ -156,6 +185,8 @@ let jsChain = new Blockchain();
 	console.log("creating transactions...");
 	let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
 	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
+	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
+	//console.log(decrypetedHash);
 
 	console.log("mining in progress...");
 	jsChain.addBlock(
