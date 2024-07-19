@@ -88,8 +88,36 @@ class Blockchain{
 		// newBlock.previousHash = this.latestBlock().hash;
 		// newBlock.hash = newBlock.calculateHash();
 		newBlock.proofOfWork(this.difficulty);
+
+		if (!this.checkBlock(newBlock)) {
+			throw new Error('New Block is invalid');
+		};
 		this.chain.push(newBlock);
 	}
+
+	checkBlock(newBlock) {
+		//verifies that a new block is a valid block
+
+		//grab current latest block
+		let cBlock = this.latestBlock();
+
+		//check the hash of the newBlock
+		if (newBlock.hash !== newBlock.calculateHash()) {
+			return false;
+		};
+
+		//check newBlock's previous hash
+		if (newBlock.previousHash !== cBlock.hash) {
+			return false;
+		}
+
+		//check proof of work for newBlock
+		if (newBlock.hash.substring(0, this.difficulty) !== Array(this.difficulty + 1).join("0")) {
+			return false;
+		}
+
+		return true;
+    }
 
 	checkValid() {
 		for(let i = 1; i < this.chain.length; i++) {
@@ -177,7 +205,27 @@ class Wallet {
 		return encryptedMessage.toString('base64')
 	}
 }
+/*
+class Miner {
+	constructor(wallet) {
+		this.wallet = wallet;
+		this.createBlock();
+	}
 
+	createBlock() {
+		//create a new empty block
+	}
+
+	addTransaction() {
+		//add a transaction to the block
+	}
+
+	returnBlock() {
+		//finish the block and return it
+		//also make a new block
+    }
+}
+*/
 let jsChain = new Blockchain();
 
 (async () => {
