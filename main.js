@@ -11,9 +11,12 @@ const generateKeyPairPromise = util.promisify(generateKeyPair);
 const crypto = require('crypto');
 
 class Block {
-	constructor(index, timestamp, previousHash) {
-		this.index = index;
-		this.timestamp = timestamp;
+	constructor(previousHash) {
+		//this.index = index;
+		//this.timestamp = timestamp;
+		this.timestamp = Date();
+		const now = new Date();
+		this.timestamp = now.toLocaleTimeString();
 		this.data = [];	//empty array
 		this.previousHash = previousHash;
 		this.nonce = 0;
@@ -21,7 +24,7 @@ class Block {
 	}
 
 	calculateHash() {
-		return SHA256(this.index +
+		return SHA256(//this.index +
 			this.previousHash +
 			this.timestamp +
 			JSON.stringify(this.data) +	//alter now that data is an array of obj
@@ -53,7 +56,7 @@ class Block {
 
 		//compare
 		if (originalHash.equals(decryptedHash)) {
-			this.data	//append the data
+			this.data.push(data)	//append the data
 		} else {
 			throw new Error('False signature');
         }
@@ -105,11 +108,13 @@ class Blockchain{
 		if (newBlock.hash !== newBlock.calculateHash()) {
 			return false;
 		};
+		console.log("correct current hash");
 
 		//check newBlock's previous hash
 		if (newBlock.previousHash !== cBlock.hash) {
 			return false;
 		}
+		console.log("correct previous hash");
 
 		//check proof of work for newBlock
 		if (newBlock.hash.substring(0, this.difficulty) !== Array(this.difficulty + 1).join("0")) {
@@ -205,27 +210,37 @@ class Wallet {
 		return encryptedMessage.toString('base64')
 	}
 }
-/*
+
 class Miner {
 	constructor(wallet) {
 		this.wallet = wallet;
-		this.createBlock();
+		this.transactions = []
 	}
 
-	createBlock() {
-		//create a new empty block
+	addTransaction(data) {
+		//verify the transaction?
+
+		//add a transaction to the array
+		this.transactions.push(data);
 	}
 
-	addTransaction() {
-		//add a transaction to the block
-	}
+	generateBlock(blockchain) {
+		//create a block
+		let block = new Block(blockchain.latestBlock().hash);
 
-	returnBlock() {
-		//finish the block and return it
-		//also make a new block
+		//add the transactions to it
+		for (let i = 0; i < this.transactions.length; i++) {
+			block.addTransaction(this.transactions[i]);
+		}
+
+		//proof of work
+		block.proofOfWork(blockchain.difficulty);
+
+		//return the block
+		return block;
     }
 }
-*/
+
 let jsChain = new Blockchain();
 
 (async () => {
@@ -235,20 +250,26 @@ let jsChain = new Blockchain();
 
 	await new Promise(resolve => setTimeout(resolve, 1000));
 
+	console.log("creating miner");
+	const miner1 = new Miner(wallet2);
+
 	console.log("creating transactions...");
 	let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
 	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
 	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
 	//console.log(decrypetedHash);
 
-	console.log("creating a block...");
-	let block1 = new Block(1, "12/25/24", jsChain.latestBlock().hash);
-	block1.addTransaction(transaction1);
-	block1.addTransaction(transaction2);
+	console.log("sending transactions to miner...");
+	miner1.addTransaction(transaction1);
+	miner1.addTransaction(transaction2);
+	//let block1 = new Block(jsChain.latestBlock().hash);
+	//block1.addTransaction(transaction1);
+	//block1.addTransaction(transaction2);
 
 	console.log("mining in progress...");
-	block1.proofOfWork(jsChain.difficulty);
-	jsChain.addBlock(block1);
+	let block = miner1.generateBlock(jsChain);
+	//block1.proofOfWork(jsChain.difficulty);
+	jsChain.addBlock(block);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
 
 
