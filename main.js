@@ -87,7 +87,7 @@ class Blockchain{
 	addBlock(newBlock) {
 		// newBlock.previousHash = this.latestBlock().hash;
 		// newBlock.hash = newBlock.calculateHash();
-		newBlock.proofOfWork(this.difficulty);
+		//newBlock.proofOfWork(this.difficulty);
 
 		if (!this.checkBlock(newBlock)) {
 			throw new Error('New Block is invalid');
@@ -247,6 +247,7 @@ let jsChain = new Blockchain();
 	block1.addTransaction(transaction2);
 
 	console.log("mining in progress...");
+	block1.proofOfWork(jsChain.difficulty);
 	jsChain.addBlock(block1);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
 
