@@ -11,15 +11,22 @@ const generateKeyPairPromise = util.promisify(generateKeyPair);
 const crypto = require('crypto');
 
 class Block {
-	constructor(previousHash) {
+	constructor(previousHash, data) {
 		//this.index = index;
-		//this.timestamp = timestamp;
-		this.timestamp = Date();
 		const now = new Date();
 		this.timestamp = now.toLocaleTimeString();
-		this.data = [];	//empty array
 		this.previousHash = previousHash;
 		this.nonce = 0;
+
+		//add transactions
+		if (data !== "Genesis Block") {
+			this.data = [data[0]];	//empty array
+			//0th point should be the award and will be check by blockchain
+			for (let i = 1; i > data.length; i++) {
+				this.verifyTransaction(data[i]);	//if it passes it will be added
+			}
+		}
+
 		this.hash = this.calculateHash();
 	}
 
@@ -31,11 +38,6 @@ class Block {
 			this.nonce
 		).toString();
 	}
-
-	addTransaction(data) {
-		this.verifyTransaction(data);	//if data passes it will be added
-		this.hash = this.calculateHash();
-    }
 
 	verifyTransaction(data) {
 
@@ -74,6 +76,7 @@ class Blockchain{
 	constructor() {
 		this.chain = [this.createGenesis()]
 		this.difficulty = 4;
+		this.award = 5
 	}
 
 	createGenesis() {
@@ -108,18 +111,21 @@ class Blockchain{
 		if (newBlock.hash !== newBlock.calculateHash()) {
 			return false;
 		};
-		console.log("correct current hash");
 
 		//check newBlock's previous hash
 		if (newBlock.previousHash !== cBlock.hash) {
 			return false;
 		}
-		console.log("correct previous hash");
 
 		//check proof of work for newBlock
 		if (newBlock.hash.substring(0, this.difficulty) !== Array(this.difficulty + 1).join("0")) {
 			return false;
 		}
+
+		//check that the first data row is the award and the proper amount
+		/*if (newBlock.data[0] !== this.amount) {
+			return false;
+        }*/
 
 		return true;
     }
@@ -218,20 +224,18 @@ class Miner {
 	}
 
 	addTransaction(data) {
-		//verify the transaction?
-
 		//add a transaction to the array
 		this.transactions.push(data);
 	}
 
 	generateBlock(blockchain) {
-		//create a block
-		let block = new Block(blockchain.latestBlock().hash);
+		//create an array of transactions
+		let data = [`${this.wallet.publicKey} gains ${blockchain.amount}`];
+		//add the transactions
+		data = data + this.transactions;
 
-		//add the transactions to it
-		for (let i = 0; i < this.transactions.length; i++) {
-			block.addTransaction(this.transactions[i]);
-		}
+		//create a block
+		let block = new Block(blockchain.latestBlock().hash, data);
 
 		//proof of work
 		block.proofOfWork(blockchain.difficulty);
