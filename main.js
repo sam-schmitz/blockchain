@@ -12,6 +12,7 @@ const crypto = require('crypto');
 
 class Block {
 	constructor(previousHash, data) {
+		//console.log("creating block");
 		//this.index = index;
 		const now = new Date();
 		this.timestamp = now.toLocaleTimeString();
@@ -20,9 +21,11 @@ class Block {
 
 		//add transactions
 		if (data !== "Genesis Block") {
+			//console.log("adding transactions: ", data);
 			this.data = [data[0]];	//empty array
-			//0th point should be the award and will be check by blockchain
-			for (let i = 1; i > data.length; i++) {
+			//0th point should be the award and will be checked by the blockchain
+			for (let i = 1; i < data.length; i++) {
+				//console.log("transaction: ", data[i]);
 				this.verifyTransaction(data[i]);	//if it passes it will be added
 			}
 		}
@@ -58,6 +61,7 @@ class Block {
 
 		//compare
 		if (originalHash.equals(decryptedHash)) {
+			//console.log('transaction passed verification');
 			this.data.push(data)	//append the data
 		} else {
 			throw new Error('False signature');
@@ -80,8 +84,7 @@ class Blockchain{
 	}
 
 	createGenesis() {
-		let g = new Block(0, "01/01/2024", "0");
-		g.data = "Genesis Block";
+		let g = new Block("0", "Genesis Block");
 		g.proofOfWork(4);
 		return g
 	}
@@ -215,6 +218,55 @@ class Wallet {
 		const encryptedMessage = crypto.publicEncrypt(this.publicKey, Buffer.from(message));
 		return encryptedMessage.toString('base64')
 	}
+
+	checkContents(blockchain) {
+		let amount = 0;
+		const escapedPublicKey = this.publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const startRegex = new RegExp(`^${escapedPublicKey}`);
+		const publicKeyRegex = new RegExp(escapedPublicKey, 'g');
+
+		//console.log("checking blockchain: ");
+		//console.log("blockchain.chain:", blockchain.chain);
+
+		for (let i = 1; i < blockchain.chain.length; i++) {
+			//console.log("checking block", i);
+			//check the data of the block
+			let blockData = blockchain.chain[i]
+			//console.log(blockData);
+
+			//console.log(blockData.data[0]);
+			//the first data point is the wallet paying itself
+			if (startRegex.test(blockData.data[0])) {
+				//console.log("public key found in award");
+				let split = blockData.data[0].split(" ");
+				amount += +split[split.length - 1];
+			} else {
+				//console.log("wallet was not found as the miner");
+				//check the transactions
+				for (let j = 1; j < blockData.data.length; j++) {
+					//blockData.data[j].data
+					//console.log("transaction data: ", blockData.data[j].data);
+					//find the 1st key
+					if (startRegex.test(blockData.data[j].data)) {
+						//console.log("key found as sender");
+						let split = blockData.data[j].data.split(" ");
+						amount -= +split[split.length - 1];
+					} else {
+						//the key is not 1st check so it is either 2nd or not in the transaction
+						if (publicKeyRegex.test(blockData.data[j].data)) {
+							//console.log("key found as recipient");
+							let split = blockData.data[j].data.split(" ");
+							amount += +split[split.length - 1];
+						} else {
+							//console.log("key not found in this transaction")
+                        }
+					}
+				}
+            }
+		}
+
+		return amount
+}
 }
 
 class Miner {
@@ -230,9 +282,11 @@ class Miner {
 
 	generateBlock(blockchain) {
 		//create an array of transactions
-		let data = [`${this.wallet.publicKey} gains ${blockchain.amount}`];
+		let data = [];
+		data.push(`${this.wallet.publicKey} gains ${blockchain.award}`);
 		//add the transactions
-		data = data + this.transactions;
+		data = [...data, ...this.transactions];
+		//console.log("data: ", data);
 
 		//create a block
 		let block = new Block(blockchain.latestBlock().hash, data);
@@ -251,31 +305,41 @@ let jsChain = new Blockchain();
 	console.log("creating wallets...");
 	const wallet1 = new Wallet();
 	const wallet2 = new Wallet();
+	const wallet3 = new Wallet();
 
 	await new Promise(resolve => setTimeout(resolve, 1000));
 
 	console.log("creating miner");
 	const miner1 = new Miner(wallet2);
+	const miner2 = new Miner(wallet3);
+	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
+
+	console.log("minting first block...");
+	let block1 = miner1.generateBlock(jsChain);
+	//console.log("block 1:", block1);
+	jsChain.addBlock(block1);
+
+	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
 
 	console.log("creating transactions...");
-	let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
+	//let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
 	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
 	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
 	//console.log(decrypetedHash);
 
 	console.log("sending transactions to miner...");
-	miner1.addTransaction(transaction1);
-	miner1.addTransaction(transaction2);
+	//miner1.addTransaction(transaction1);
+	miner2.addTransaction(transaction2);
 	//let block1 = new Block(jsChain.latestBlock().hash);
 	//block1.addTransaction(transaction1);
 	//block1.addTransaction(transaction2);
 
 	console.log("mining in progress...");
-	let block = miner1.generateBlock(jsChain);
+	let block = miner2.generateBlock(jsChain);
 	//block1.proofOfWork(jsChain.difficulty);
 	jsChain.addBlock(block);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
-
+	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
 
 	console.log(JSON.stringify(jsChain, null, 4));
 	console.log("Is blockchain valid? " + jsChain.checkValid());
