@@ -149,6 +149,47 @@ class Blockchain{
 
 		return true;
 	}
+
+	checkWalletContents(publicKey) {
+		let amount = 0;
+		//regular expressions to find the publicKey in a transaction
+		const escapedPublicKey = publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const startRegex = new RegExp(`^${escapedPublicKey}`);
+		const publicKeyRegex = new RegExp(escapedPublicKey, 'g');
+
+		for (let i = 1; i < this.chain.length; i++) {
+			//each loop is a block
+			let blockData = this.chain[i];
+
+			//check if the publicKey is found in the award statement
+			if (startRegex.test(blockData.data[0])) {
+				//console.log("public key found in award");
+				let split = blockData.data[0].split(" ");
+				amount += +split[split.length - 1];
+
+			} else {	//check the other transactions
+				for (let j = 1; j < blockData.data.length; j++) {
+
+					//check if the publicKey is the sender
+					if (startRegex.test(blockData.data[j].data)) {
+						//find the amount given
+						let split = blockData.data[j].data.split(" ");
+						amount -= +split[split.length - 1];
+
+					} else {	//publicKey is not the sender
+						//check if publicKey is in the transaction 
+						//if it is publicKey is the recipient
+						if (publicKeyRegex.test(blockData.data[j].data)) {
+							//find the amount given
+							let split = blockData.data[j].data.split(" ");
+							amount += +split[split.length - 1];
+						}
+                    }
+                }
+            }
+		}
+		return amount;
+    }
 }
 
 const generateKeyPair2 = promisify(crypto.generateKeyPair);
