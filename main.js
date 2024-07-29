@@ -45,7 +45,7 @@ class Block {
 	verifyTransaction(data) {
 
 		//grab the public key from the data
-		let publicKey = data.data
+		let publicKey = data.data.data
 		const regex = /-----BEGIN PUBLIC KEY-----[\r\n]+([\s\S]*?)[\r\n]+-----END PUBLIC KEY-----/;
 		const match = publicKey.match(regex);
 		publicKey = match ? match[0] : null;
@@ -56,7 +56,7 @@ class Block {
 		//console.log("decrypted hash: ", decryptedHash);
 
 		//hash the data
-		const originalHash = crypto.createHash('sha256').update(data.data).digest();
+		const originalHash = crypto.createHash('sha256').update(JSON.stringify(data.data)).digest();
 		//console.log("remade hash", originalHash);
 
 		//compare
@@ -228,12 +228,25 @@ class Wallet {
 		//create a string with the transaction data
 		let transaction = `${this.publicKey.toString()} pays ${recipient.toString()} ${amount}`;
 
+		//find the block with your contents
+		let lastBlockSender = null;
+
+		//find the block with the recipients contents
+		let lastBlockRecipient = null;
+
+		//create the transaction obj
+		transaction = {
+			data: transaction,
+			sender: this.publicKey,
+			recipient: recipient,
+			amount: amount,
+			lastBlockSender: lastBlockSender,
+			lastBlockRecipient: lastBlockRecipient
+        }
+
 		//generate a signature
 		let signature = this.generateSignature(transaction);
-
-		//return a dictionary with the message and signature
-		return { data: transaction, signature: signature };
-		//return transaction
+		return {data: transaction, signature: signature};
 	}
 
 	generateSignature(data) {
@@ -243,7 +256,7 @@ class Wallet {
 		}
 
 		//run the transaction data through a hash
-		const hash = crypto.createHash('sha256').update(data).digest();
+		const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest();
 		//console.log("pre encrypted hash", hash);
 
 		//encrypt the hash using the private key
