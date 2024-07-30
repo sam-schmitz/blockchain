@@ -151,66 +151,26 @@ class Blockchain{
 	}
 
 	checkWalletContents(publicKey) {
-		/*
-		let amount = 0;
-		//regular expressions to find the publicKey in a transaction
-		const escapedPublicKey = publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const startRegex = new RegExp(`^${escapedPublicKey}`);
-		const publicKeyRegex = new RegExp(escapedPublicKey, 'g');
-
-		for (let i = 1; i < this.chain.length; i++) {
-			//each loop is a block
-			let blockData = this.chain[i];
-
-			//check if the publicKey is found in the award statement
-			if (startRegex.test(blockData.data[0])) {
-				//console.log("public key found in award");
-				let split = blockData.data[0].split(" ");
-				amount += +split[split.length - 1];
-
-			} else {	//check the other transactions
-				for (let j = 1; j < blockData.data.length; j++) {
-
-					//check if the publicKey is the sender
-					if (startRegex.test(blockData.data[j].data)) {
-						//find the amount given
-						let split = blockData.data[j].data.split(" ");
-						amount -= +split[split.length - 1];
-
-					} else {	//publicKey is not the sender
-						//check if publicKey is in the transaction 
-						//if it is publicKey is the recipient
-						if (publicKeyRegex.test(blockData.data[j].data)) {
-							//find the amount given
-							let split = blockData.data[j].data.split(" ");
-							amount += +split[split.length - 1];
-						}
-                    }
-                }
-            }
-		}
-		return amount;
-		*/
 		for (let i = this.chain.length - 1; i > 0; i--) {
 			//each loop is a block starting with the latest block
 			let blockData = this.chain[i];
 
 			//check if the publicKey is found in the award statement
 			if (blockData.data[0].wallet == publicKey) {
-				return blockData.data.award, i;
+				return [blockData.data[0].award, i];
 
 			} else {
 				for (let j = 1; j < blockData.data.length; j++) {
 					if (blockData.data[j].data.sender == publicKey) {
-						return blockData.data.senderContents, i;
+						return [blockData.data.senderContents, i];
 					}
 					if (blockData.data[j].data.recipient == publicKey) {
-						return blockData.data.recipientContents, i;
+						return[blockData.data.recipientContents, i];
                     }
                 }
             }
 		}
-		return 0, null;
+		return [0, null];
     }
 }
 
@@ -251,11 +211,11 @@ class Wallet {
 		let transaction = `${this.publicKey.toString()} pays ${recipient.toString()} ${amount}`;
 
 		//find the block with your contents
-		let senderContents, lastBlockSender = blockchain.checkWalletContents(this.publicKey);
+		let [senderContents, lastBlockSender] = blockchain.checkWalletContents(this.publicKey);
 		senderContents = senderContents - amount;
 
 		//find the block with the recipients contents
-		let recipientContents, lastBlockRecipient = blockchain.checkWalletContents(recipient);
+		let [recipientContents, lastBlockRecipient] = blockchain.checkWalletContents(recipient);
 		recipientContents = recipientContents + amount
 
 		//create the transaction obj
@@ -364,12 +324,12 @@ class Miner {
 		//create an array of transactions
 		let data = [];
 
-		let walletContents, walletLastBlock = blockchain.checkWalletContents(this.wallet.publicKey);
+		let [walletContents, walletLastBlock] = blockchain.checkWalletContents(this.wallet.publicKey);
 		let award = {
 			data: `${this.wallet.publicKey} gains ${blockchain.award}`,
 			miner: this.wallet.publicKey,
 			amount: blockchain.award + walletContents,
-			lastBlock = walletLastBlock
+			lastBlock: walletLastBlock
 		}
 		data.push(award);
 		//add the transactions
@@ -400,18 +360,18 @@ let jsChain = new Blockchain();
 	console.log("creating miner");
 	const miner1 = new Miner(wallet2);
 	const miner2 = new Miner(wallet3);
-	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
+	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log("minting first block...");
 	let block1 = miner1.generateBlock(jsChain);
 	//console.log("block 1:", block1);
 	jsChain.addBlock(block1);
 
-	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
+	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log("creating transactions...");
 	//let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
-	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey);
+	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey, jsChain);
 	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
 	//console.log(decrypetedHash);
 
@@ -427,7 +387,7 @@ let jsChain = new Blockchain();
 	//block1.proofOfWork(jsChain.difficulty);
 	jsChain.addBlock(block);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
-	console.log("wallet2 amount: ", wallet2.checkContents(jsChain));
+	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log(JSON.stringify(jsChain, null, 4));
 	console.log("Is blockchain valid? " + jsChain.checkValid());
