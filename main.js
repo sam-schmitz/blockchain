@@ -367,7 +367,15 @@ class Miner {
 	generateBlock(blockchain) {
 		//create an array of transactions
 		let data = [];
-		data.push(`${this.wallet.publicKey} gains ${blockchain.award}`);
+
+		let walletContents, walletLastBlock = blockchain.checkWalletContents(this.wallet.publicKey);
+		let award = {
+			data: `${this.wallet.publicKey} gains ${blockchain.award}`,
+			miner: this.wallet.publicKey,
+			amount: blockchain.award + walletContents,
+			lastBlock = walletLastBlock
+		}
+		data.push(award);
 		//add the transactions
 		data = [...data, ...this.transactions];
 		//console.log("data: ", data);
