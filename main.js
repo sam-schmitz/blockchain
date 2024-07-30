@@ -134,7 +134,7 @@ class Blockchain{
     }
 
 	checkValid() {
-		for(let i = 1; i < this.chain.length; i++) {
+		for (let i = 1; i < this.chain.length; i++) {
 			const currentBlock = this.chain[i];
 			const previousBlock = this.chain[i - 1];
 
@@ -151,7 +151,9 @@ class Blockchain{
 	}
 
 	checkWalletContents(publicKey) {
-		for (let i = this.chain.length - 1; i > 0; i--) {
+		console.log("checking wallet");
+		for (let i = this.chain.length - 3; i > 0; i--) {
+			console.log(`Checking block ${i}`);
 			//each loop is a block starting with the latest block
 			let blockData = this.chain[i];
 
@@ -259,54 +261,6 @@ class Wallet {
 		return encryptedMessage.toString('base64')
 	}
 
-	checkContents(blockchain) {
-		let amount = 0;
-		const escapedPublicKey = this.publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const startRegex = new RegExp(`^${escapedPublicKey}`);
-		const publicKeyRegex = new RegExp(escapedPublicKey, 'g');
-
-		//console.log("checking blockchain: ");
-		//console.log("blockchain.chain:", blockchain.chain);
-
-		for (let i = 1; i < blockchain.chain.length; i++) {
-			//console.log("checking block", i);
-			//check the data of the block
-			let blockData = blockchain.chain[i]
-			//console.log(blockData);
-
-			//console.log(blockData.data[0]);
-			//the first data point is the wallet paying itself
-			if (startRegex.test(blockData.data[0])) {
-				//console.log("public key found in award");
-				let split = blockData.data[0].split(" ");
-				amount += +split[split.length - 1];
-			} else {
-				//console.log("wallet was not found as the miner");
-				//check the transactions
-				for (let j = 1; j < blockData.data.length; j++) {
-					//blockData.data[j].data
-					//console.log("transaction data: ", blockData.data[j].data);
-					//find the 1st key
-					if (startRegex.test(blockData.data[j].data)) {
-						//console.log("key found as sender");
-						let split = blockData.data[j].data.split(" ");
-						amount -= +split[split.length - 1];
-					} else {
-						//the key is not 1st check so it is either 2nd or not in the transaction
-						if (publicKeyRegex.test(blockData.data[j].data)) {
-							//console.log("key found as recipient");
-							let split = blockData.data[j].data.split(" ");
-							amount += +split[split.length - 1];
-						} else {
-							//console.log("key not found in this transaction")
-                        }
-					}
-				}
-            }
-		}
-
-		return amount
-}
 }
 
 class Miner {
@@ -360,12 +314,16 @@ let jsChain = new Blockchain();
 	console.log("creating miner");
 	const miner1 = new Miner(wallet2);
 	const miner2 = new Miner(wallet3);
+	const miner3 = new Miner(wallet1)
 	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
-	console.log("minting first block...");
+	console.log("minting first blocks...");
 	let block1 = miner1.generateBlock(jsChain);
 	//console.log("block 1:", block1);
 	jsChain.addBlock(block1);
+	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner3.generateBlock(jsChain));
 
 	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
@@ -387,6 +345,13 @@ let jsChain = new Blockchain();
 	//block1.proofOfWork(jsChain.difficulty);
 	jsChain.addBlock(block);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
+	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
+
+	console.log("minting extra blocks...");
+	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner3.generateBlock(jsChain));
+
 	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log(JSON.stringify(jsChain, null, 4));
