@@ -156,13 +156,13 @@ class Blockchain{
 			let blockData = this.chain[i];
 
 			//check if the publicKey is found in the award statement
-			if (blockData.data[0].wallet == publicKey) {
-				return [blockData.data[0].award, i];
+			if (blockData.data[0].miner == publicKey) {
+				return [blockData.data[0].amount, i];
 
 			} else {
 				for (let j = 1; j < blockData.data.length; j++) {
 					if (blockData.data[j].data.sender == publicKey) {
-						return [blockData.data.senderContents, i];
+						return [blockData.data[j].data.senderContents, i];
 					}
 					if (blockData.data[j].data.recipient == publicKey) {
 						return[blockData.data.recipientContents, i];
