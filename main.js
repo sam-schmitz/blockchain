@@ -151,9 +151,7 @@ class Blockchain{
 	}
 
 	checkWalletContents(publicKey) {
-		console.log("checking wallet");
 		for (let i = this.chain.length - 3; i > 0; i--) {
-			console.log(`Checking block ${i}`);
 			//each loop is a block starting with the latest block
 			let blockData = this.chain[i];
 
@@ -167,7 +165,7 @@ class Blockchain{
 						return [blockData.data[j].data.senderContents, i];
 					}
 					if (blockData.data[j].data.recipient == publicKey) {
-						return[blockData.data.recipientContents, i];
+						return [blockData.data[j].data.recipientContents, i];
                     }
                 }
             }
@@ -218,7 +216,7 @@ class Wallet {
 
 		//find the block with the recipients contents
 		let [recipientContents, lastBlockRecipient] = blockchain.checkWalletContents(recipient);
-		recipientContents = recipientContents + amount
+		recipientContents = recipientContents + amount;
 
 		//create the transaction obj
 		transaction = {
@@ -308,13 +306,15 @@ let jsChain = new Blockchain();
 	const wallet1 = new Wallet();
 	const wallet2 = new Wallet();
 	const wallet3 = new Wallet();
+	const wallet4 = new Wallet();
 
 	await new Promise(resolve => setTimeout(resolve, 1000));
 
 	console.log("creating miner");
-	const miner1 = new Miner(wallet2);
-	const miner2 = new Miner(wallet3);
-	const miner3 = new Miner(wallet1)
+	const miner1 = new Miner(wallet1);
+	const miner2 = new Miner(wallet2);
+	const miner3 = new Miner(wallet3);
+	const miner4 = new Miner(wallet4);
 	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log("minting first blocks...");
@@ -322,36 +322,35 @@ let jsChain = new Blockchain();
 	//console.log("block 1:", block1);
 	jsChain.addBlock(block1);
 	jsChain.addBlock(miner3.generateBlock(jsChain));
-	jsChain.addBlock(miner3.generateBlock(jsChain));
-	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner4.generateBlock(jsChain));
 
-	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
+	console.log("wallet1 amount: ", jsChain.checkWalletContents(wallet1.publicKey));
 
 	console.log("creating transactions...");
 	//let transaction1 = wallet1.createTransaction("5", wallet2.publicKey);
-	let transaction2 = wallet2.createTransaction("10", wallet1.publicKey, jsChain);
+	let transaction2 = wallet1.createTransaction(10, wallet2.publicKey, jsChain);
 	//let decrypetedHash = crypto.publicDecrypt(wallet1.publicKey, Buffer.from(transaction1.signature, 'base64'));
 	//console.log(decrypetedHash);
 
 	console.log("sending transactions to miner...");
 	//miner1.addTransaction(transaction1);
-	miner2.addTransaction(transaction2);
+	miner3.addTransaction(transaction2);
 	//let block1 = new Block(jsChain.latestBlock().hash);
 	//block1.addTransaction(transaction1);
 	//block1.addTransaction(transaction2);
 
 	console.log("mining in progress...");
-	let block = miner2.generateBlock(jsChain);
+	let block = miner3.generateBlock(jsChain);
 	//block1.proofOfWork(jsChain.difficulty);
 	jsChain.addBlock(block);
 	//jsChain.addBlock(new Block(2, "12/26/2024", transaction2, jsChain.latestBlock().hash));
-	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
+	console.log("wallet1 amount: ", jsChain.checkWalletContents(wallet1.publicKey));
 
 	console.log("minting extra blocks...");
-	jsChain.addBlock(miner3.generateBlock(jsChain));
-	jsChain.addBlock(miner3.generateBlock(jsChain));
-	jsChain.addBlock(miner3.generateBlock(jsChain));
+	jsChain.addBlock(miner4.generateBlock(jsChain));
+	jsChain.addBlock(miner1.generateBlock(jsChain));
 
+	console.log("wallet1 amount: ", jsChain.checkWalletContents(wallet1.publicKey));
 	console.log("wallet2 amount: ", jsChain.checkWalletContents(wallet2.publicKey));
 
 	console.log(JSON.stringify(jsChain, null, 4));
