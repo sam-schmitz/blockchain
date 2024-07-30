@@ -250,17 +250,17 @@ class Wallet {
 		}
 	}
 
-	createTransaction(amount, recipient) {
+	createTransaction(amount, recipient, blockchain) {
 		//create a string with the transaction data
 		let transaction = `${this.publicKey.toString()} pays ${recipient.toString()} ${amount}`;
 
 		//find the block with your contents
-		let lastBlockSender = null;
-		let senderContents = null;	//found contents - amount
+		let senderContents, lastBlockSender = blockchain.checkWalletContents(this.publicKey);
+		senderContents = senderContents - amount;
 
 		//find the block with the recipients contents
-		let lastBlockRecipient = null;
-		let recipientContents = null;	//found contents + amount
+		let recipientContents, lastBlockRecipient = blockchain.checkWalletContents(recipient);
+		recipientContents = recipientContents + amount
 
 		//create the transaction obj
 		transaction = {
