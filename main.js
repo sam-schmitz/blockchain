@@ -151,6 +151,7 @@ class Blockchain{
 	}
 
 	checkWalletContents(publicKey) {
+		/*
 		let amount = 0;
 		//regular expressions to find the publicKey in a transaction
 		const escapedPublicKey = publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -189,6 +190,31 @@ class Blockchain{
             }
 		}
 		return amount;
+		*/
+		const escapedPublicKey = publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const startRegex = new RegExp(`^${escapedPublicKey}`);
+
+		for (let i = this.chain.length - 1; i > 0; i--) {
+			//each loop is a block starting with the latest block
+			let blockData = this.chain[i];
+
+			//check if the publicKey is found in the award statement
+			if (startRegex.test(blockData.data[0])) {
+				let split = blockData.data[0].split(" ");
+				return +split[split.length - 1], i;
+
+			} else {
+				for (let j = 1; j < blockData.data.length; j++) {
+					if (blockData.data[j].data.sender == publicKey) {
+						return blockData.data.senderContents, i;
+					}
+					if (blockData.data[j].data.recipient == publicKey) {
+						return blockData.data.recipientContents, i;
+                    }
+                }
+            }
+		}
+		return 0, null;
     }
 }
 
@@ -230,9 +256,11 @@ class Wallet {
 
 		//find the block with your contents
 		let lastBlockSender = null;
+		let senderContents = null;	//found contents - amount
 
 		//find the block with the recipients contents
 		let lastBlockRecipient = null;
+		let recipientContents = null;	//found contents + amount
 
 		//create the transaction obj
 		transaction = {
@@ -241,7 +269,9 @@ class Wallet {
 			recipient: recipient,
 			amount: amount,
 			lastBlockSender: lastBlockSender,
-			lastBlockRecipient: lastBlockRecipient
+			lastBlockRecipient: lastBlockRecipient,
+			senderContents: senderContents,
+			recipientContents: recipientContents
         }
 
 		//generate a signature
