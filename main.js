@@ -191,17 +191,13 @@ class Blockchain{
 		}
 		return amount;
 		*/
-		const escapedPublicKey = publicKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const startRegex = new RegExp(`^${escapedPublicKey}`);
-
 		for (let i = this.chain.length - 1; i > 0; i--) {
 			//each loop is a block starting with the latest block
 			let blockData = this.chain[i];
 
 			//check if the publicKey is found in the award statement
-			if (startRegex.test(blockData.data[0])) {
-				let split = blockData.data[0].split(" ");
-				return +split[split.length - 1], i;
+			if (blockData.data[0].wallet == publicKey) {
+				return blockData.data.award, i;
 
 			} else {
 				for (let j = 1; j < blockData.data.length; j++) {
