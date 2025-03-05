@@ -5,7 +5,7 @@
 <p><a>https://www.smashingmagazine.com/2020/02/cryptocurrency-blockchain-node-js/</a></p>
 <p>Deliverable: A blockchain along with a miner, and wallet. The chain is capable of being searched in log(n) efficiency for a wallet's contents. The blockchain is secure as long as 5+ miners are active. </p>
 
-<h3>Porject Elements: </h3>
+<h3>Project Elements: </h3>
 <ul>
   <li>
     <h3>Block</h3>
